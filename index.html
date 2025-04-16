@@ -1,60 +1,248 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Leaflet Map Bridge for Axure</title>
+  <title>Mobile Map Navigation</title>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
   
+  <!-- Geocoder CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.css" />
+  
   <style>
-    body {
+    /* Mobile-first styles */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
     }
-    #map {
-      height: 500px;
-      width: 100%;
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    .info-panel {
-      background: white;
+    
+    .app-header {
+      background-color: #2196F3;
+      color: white;
+      text-align: center;
       padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      font-size: 18px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    
+    .search-container {
+      padding: 8px;
+      background-color: white;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .search-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .search-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .search-box {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      background-color: #f8f9fa;
+    }
+    
+    #start-search-box {
+      border-left: 4px solid #4CAF50;
+    }
+    
+    #end-search-box {
+      border-left: 4px solid #F44336;
+    }
+    
+    .search-button {
+      padding: 10px 12px;
+      margin-left: 8px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    #map {
+      flex: 1;
+      width: 100%;
+      z-index: 1;
+    }
+    
+    .route-info-panel {
+      background: white;
+      padding: 12px;
+      border-top: 1px solid #e0e0e0;
+      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+      font-size: 14px;
+      transition: transform 0.3s ease;
+      max-height: 35vh;
+      overflow-y: auto;
+    }
+    
+    .route-info-panel.collapsed {
+      transform: translateY(calc(100% - 40px));
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .toggle-panel {
+      width: 40px;
+      height: 5px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      margin: 0 auto 8px;
+      cursor: pointer;
+    }
+    
+    .route-detail {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    
+    .detail-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    
+    .detail-text {
+      flex: 1;
+    }
+    
+    .route-main-info {
+      display: flex;
+      justify-content: space-between;
+      background-color: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
       margin-top: 10px;
+      font-weight: 500;
+    }
+    
+    /* Make Leaflet controls more touch-friendly */
+    .leaflet-touch .leaflet-control-layers,
+    .leaflet-touch .leaflet-bar {
+      border: none;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    }
+    
+    .leaflet-touch .leaflet-bar a {
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+    }
+    
+    /* Optimize marker popup for mobile */
+    .leaflet-popup-content {
+      margin: 10px;
+      font-size: 14px;
+    }
+    
+    /* Improve mobile routing display */
+    .leaflet-routing-container {
+      display: none; /* Hide default routing instructions */
     }
   </style>
 </head>
 <body>
+  <div class="app-header">
+    Navigation
+  </div>
+  
+  <div class="search-container">
+    <div class="search-row">
+      <input type="text" id="start-search-box" class="search-box" placeholder="Starting point">
+      <button id="set-start-button" class="search-button">Set</button>
+    </div>
+    <div class="search-row">
+      <input type="text" id="end-search-box" class="search-box" placeholder="Destination">
+      <button id="set-end-button" class="search-button">Set</button>
+    </div>
+  </div>
+  
   <div id="map"></div>
-  <div id="route-info" class="info-panel">Loading route information...</div>
+  
+  <div id="route-info" class="route-info-panel collapsed">
+    <div class="toggle-panel" id="toggle-panel"></div>
+    <div class="panel-header">
+      <h3>Route Details</h3>
+    </div>
+    <div id="route-details">
+      Enter locations to see route details
+    </div>
+  </div>
   
   <!-- Leaflet JavaScript -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   
-  <!-- Leaflet Routing Machine for directions -->
+  <!-- Leaflet Routing Machine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
   
+  <!-- Geocoder Plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.min.js"></script>
+  
   <script>
-    // Get parameters from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const startLat = parseFloat(urlParams.get('startLat') || '51.505');
-    const startLng = parseFloat(urlParams.get('startLng') || '-0.09');
-    const endLat = parseFloat(urlParams.get('endLat') || '51.51');
-    const endLng = parseFloat(urlParams.get('endLng') || '-0.1');
+    // Initialize map with default view
+    const map = L.map('map', {
+      zoomControl: false, // Move zoom control for better mobile experience
+      attributionControl: false // Hide attribution for cleaner mobile view
+    }).setView([20, 0], 2);
     
-    // Initialize map
-    const map = L.map('map').setView([startLat, startLng], 13);
+    // Move zoom control to bottom right for better thumb access
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(map);
+    
+    // Add minimal attribution
+    L.control.attribution({
+      position: 'bottomleft',
+      prefix: ''
+    }).addAttribution('© OpenStreetMap').addTo(map);
     
     // Add OpenStreetMap tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      maxZoom: 19
     }).addTo(map);
     
+    // Initialize geocoder
+    const geocoder = L.Control.Geocoder.nominatim();
+    
     // Create start marker (green)
-    const startMarker = L.marker([startLat, startLng], {
+    const startMarker = L.marker([0, 0], {
       draggable: true,
       title: "Start point",
       icon: L.icon({
@@ -65,10 +253,10 @@
         popupAnchor: [1, -34],
         shadowSize: [41, 41]
       })
-    }).addTo(map);
+    });
     
     // Create end marker (red)
-    const endMarker = L.marker([endLat, endLng], {
+    const endMarker = L.marker([0, 0], {
       draggable: true,
       title: "End point",
       icon: L.icon({
@@ -79,35 +267,167 @@
         popupAnchor: [1, -34],
         shadowSize: [41, 41]
       })
-    }).addTo(map);
+    });
     
     // Add popups to markers
-    startMarker.bindPopup("Start point").openPopup();
+    startMarker.bindPopup("Start point");
     endMarker.bindPopup("End point");
     
-    // Initialize routing
+    // Track if markers are on the map
+    let startMarkerAdded = false;
+    let endMarkerAdded = false;
+    
+    // Initialize routing control (but don't add to map yet)
     const routing = L.Routing.control({
-      waypoints: [
-        L.latLng(startLat, startLng),
-        L.latLng(endLat, endLng)
-      ],
+      waypoints: [],
       routeWhileDragging: true,
       showAlternatives: true,
+      lineOptions: {
+        styles: [
+          {color: '#2196F3', opacity: 0.7, weight: 6}
+        ]
+      },
       altLineOptions: {
         styles: [
-          {color: 'black', opacity: 0.15, weight: 9},
-          {color: 'white', opacity: 0.8, weight: 6},
-          {color: 'blue', opacity: 0.5, weight: 2}
+          {color: '#90CAF9', opacity: 0.5, weight: 5}
         ]
-      }
-    }).addTo(map);
+      },
+      createMarker: function() { return null; } // Don't create default markers
+    });
     
-    // Update route info when route is calculated
+    // Panel toggle functionality
+    document.getElementById('toggle-panel').addEventListener('click', function() {
+      const panel = document.getElementById('route-info');
+      panel.classList.toggle('collapsed');
+    });
+    
+    // Function to search for a location
+    function searchLocation(locationName, isStartPoint) {
+      geocoder.geocode(locationName, function(results) {
+        if (results.length > 0) {
+          const result = results[0];
+          const latlng = result.center;
+          
+          if (isStartPoint) {
+            // Handle start point
+            startMarker.setLatLng(latlng);
+            if (!startMarkerAdded) {
+              startMarker.addTo(map);
+              startMarkerAdded = true;
+            }
+            startMarker.bindPopup(result.name || "Start point").openPopup();
+            
+            // Update start point in document
+            document.getElementById('start-search-box').value = result.name;
+            
+            // Zoom to marker if end point isn't set
+            if (!endMarkerAdded) {
+              map.setView(latlng, 13);
+            }
+          } else {
+            // Handle end point
+            endMarker.setLatLng(latlng);
+            if (!endMarkerAdded) {
+              endMarker.addTo(map);
+              endMarkerAdded = true;
+            }
+            endMarker.bindPopup(result.name || "End point").openPopup();
+            
+            // Update end point in document
+            document.getElementById('end-search-box').value = result.name;
+            
+            // Zoom to marker if start point isn't set
+            if (!startMarkerAdded) {
+              map.setView(latlng, 13);
+            }
+          }
+          
+          // If both points are set, update the route
+          if (startMarkerAdded && endMarkerAdded) {
+            updateRoute();
+            
+            // Expand info panel when route is calculated
+            document.getElementById('route-info').classList.remove('collapsed');
+          }
+        } else {
+          alert("Location not found. Please try a different search term.");
+        }
+      });
+    }
+    
+    // Function to update the route
+    function updateRoute() {
+      // Remove old route if it exists
+      if (map.hasLayer(routing)) {
+        map.removeControl(routing);
+      }
+      
+      // Create new routing with current markers
+      routing.setWaypoints([
+        startMarker.getLatLng(),
+        endMarker.getLatLng()
+      ]);
+      
+      routing.addTo(map);
+      
+      // Fit map to show both markers
+      const bounds = L.latLngBounds(startMarker.getLatLng(), endMarker.getLatLng());
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+    
+    // Set up event listeners for buttons
+    document.getElementById('set-start-button').addEventListener('click', function() {
+      const locationName = document.getElementById('start-search-box').value;
+      if (locationName) {
+        searchLocation(locationName, true);
+      }
+    });
+    
+    document.getElementById('set-end-button').addEventListener('click', function() {
+      const locationName = document.getElementById('end-search-box').value;
+      if (locationName) {
+        searchLocation(locationName, false);
+      }
+    });
+    
+    // Allow Enter key to trigger search
+    document.getElementById('start-search-box').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const locationName = this.value;
+        if (locationName) {
+          searchLocation(locationName, true);
+        }
+      }
+    });
+    
+    document.getElementById('end-search-box').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const locationName = this.value;
+        if (locationName) {
+          searchLocation(locationName, false);
+        }
+      }
+    });
+    
+    // Update route when markers are dragged
+    startMarker.on('dragend', function() {
+      if (startMarkerAdded && endMarkerAdded) {
+        updateRoute();
+      }
+    });
+    
+    endMarker.on('dragend', function() {
+      if (startMarkerAdded && endMarkerAdded) {
+        updateRoute();
+      }
+    });
+    
+    // Handle route calculation results
     routing.on('routesfound', function(e) {
       const routes = e.routes;
       const summary = routes[0].summary;
       
-      // Format distance (convert to km if > 1000m)
+      // Format distance
       let distance = summary.totalDistance;
       let distanceText = '';
       
@@ -117,7 +437,7 @@
         distanceText = distance.toFixed(0) + ' m';
       }
       
-      // Format time (convert to minutes and hours)
+      // Format time
       let time = summary.totalTime;
       let timeText = '';
       
@@ -130,17 +450,33 @@
         timeText = minutes + ' min';
       }
       
-      // Update info panel
-      document.getElementById('route-info').innerHTML = `
-        <h3>Route Information</h3>
-        <p><strong>Distance:</strong> ${distanceText}</p>
-        <p><strong>Estimated Time:</strong> ${timeText}</p>
-        <p><strong>Start:</strong> ${startMarker.getLatLng().lat.toFixed(5)}, ${startMarker.getLatLng().lng.toFixed(5)}</p>
-        <p><strong>End:</strong> ${endMarker.getLatLng().lat.toFixed(5)}, ${endMarker.getLatLng().lng.toFixed(5)}</p>
+      // Update info panel with mobile-friendly formatting
+      document.getElementById('route-details').innerHTML = `
+        <div class="route-detail">
+          <div class="detail-icon">🟢</div>
+          <div class="detail-text">${document.getElementById('start-search-box').value}</div>
+        </div>
+        <div class="route-detail">
+          <div class="detail-icon">🔴</div>
+          <div class="detail-text">${document.getElementById('end-search-box').value}</div>
+        </div>
+        
+        <div class="route-main-info">
+          <div>
+            <div>Distance</div>
+            <div><strong>${distanceText}</strong></div>
+          </div>
+          <div>
+            <div>Time</div>
+            <div><strong>${timeText}</strong></div>
+          </div>
+        </div>
       `;
       
       // Make data available to parent frame
       const routeData = {
+        startLocation: document.getElementById('start-search-box').value,
+        endLocation: document.getElementById('end-search-box').value,
         distance: distanceText,
         duration: timeText,
         startCoords: startMarker.getLatLng(),
@@ -148,15 +484,6 @@
       };
       
       window.parent.postMessage(routeData, '*');
-    });
-    
-    // Update routing when markers are dragged
-    startMarker.on('dragend', function(e) {
-      routing.spliceWaypoints(0, 1, e.target.getLatLng());
-    });
-    
-    endMarker.on('dragend', function(e) {
-      routing.spliceWaypoints(1, 1, e.target.getLatLng());
     });
   </script>
 </body>

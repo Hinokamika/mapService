@@ -216,275 +216,228 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.min.js"></script>
   
   <script>
-    // Initialize map with default view
-    const map = L.map('map', {
-      zoomControl: false, // Move zoom control for better mobile experience
-      attributionControl: false // Hide attribution for cleaner mobile view
-    }).setView([20, 0], 2);
-    
-    // Move zoom control to bottom right for better thumb access
-    L.control.zoom({
-      position: 'bottomright'
-    }).addTo(map);
-    
-    // Add minimal attribution
-    L.control.attribution({
-      position: 'bottomleft',
-      prefix: ''
-    }).addAttribution('© OpenStreetMap').addTo(map);
-    
-    // Add OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(map);
-    
-    // Initialize geocoder
-    const geocoder = L.Control.Geocoder.nominatim();
-    
-    // Create start marker (green)
-    const startMarker = L.marker([0, 0], {
-      draggable: true,
-      title: "Start point",
-      icon: L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      })
-    });
-    
-    // Create end marker (red)
-    const endMarker = L.marker([0, 0], {
-      draggable: true,
-      title: "End point",
-      icon: L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      })
-    });
-    
-    // Add popups to markers
-    startMarker.bindPopup("Start point");
-    endMarker.bindPopup("End point");
-    
-    // Track if markers are on the map
-    let startMarkerAdded = false;
-    let endMarkerAdded = false;
-    
-    // Initialize routing control (but don't add to map yet)
-    const routing = L.Routing.control({
-      waypoints: [],
-      routeWhileDragging: true,
-      showAlternatives: true,
-      lineOptions: {
-        styles: [
-          {color: '#2196F3', opacity: 0.7, weight: 6}
-        ]
-      },
-      altLineOptions: {
-        styles: [
-          {color: '#90CAF9', opacity: 0.5, weight: 5}
-        ]
-      },
-      createMarker: function() { return null; } // Don't create default markers
-    });
-    
-    // Panel toggle functionality
-    document.getElementById('toggle-panel').addEventListener('click', function() {
-      const panel = document.getElementById('route-info');
-      panel.classList.toggle('collapsed');
-    });
-    
-    // Function to search for a location
-    function searchLocation(locationName, isStartPoint) {
-      geocoder.geocode(locationName, function(results) {
-        if (results.length > 0) {
-          const result = results[0];
-          const latlng = result.center;
-          
-          if (isStartPoint) {
-            // Handle start point
-            startMarker.setLatLng(latlng);
-            if (!startMarkerAdded) {
-              startMarker.addTo(map);
-              startMarkerAdded = true;
-            }
-            startMarker.bindPopup(result.name || "Start point").openPopup();
-            
-            // Update start point in document
-            document.getElementById('start-search-box').value = result.name;
-            
-            // Zoom to marker if end point isn't set
-            if (!endMarkerAdded) {
-              map.setView(latlng, 13);
-            }
-          } else {
-            // Handle end point
-            endMarker.setLatLng(latlng);
-            if (!endMarkerAdded) {
-              endMarker.addTo(map);
-              endMarkerAdded = true;
-            }
-            endMarker.bindPopup(result.name || "End point").openPopup();
-            
-            // Update end point in document
-            document.getElementById('end-search-box').value = result.name;
-            
-            // Zoom to marker if start point isn't set
-            if (!startMarkerAdded) {
-              map.setView(latlng, 13);
-            }
+  // Initialize map with default view
+  const map = L.map('map', {
+    zoomControl: false, // Move zoom control for better mobile experience
+    attributionControl: false // Hide attribution for cleaner mobile view
+  }).setView([20, 0], 2);
+
+  // Move zoom control to bottom right for better thumb access
+  L.control.zoom({
+    position: 'bottomright'
+  }).addTo(map);
+
+  // Add minimal attribution
+  L.control.attribution({
+    position: 'bottomleft',
+    prefix: ''
+  }).addAttribution('© OpenStreetMap').addTo(map);
+
+  // Add OpenStreetMap tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  // Initialize geocoder
+  const geocoder = L.Control.Geocoder.nominatim();
+
+  // Create start marker (green)
+  const startMarker = L.marker([0, 0], {
+    draggable: true,
+    title: "Start point",
+    icon: L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    })
+  });
+
+  // Create end marker (red)
+  const endMarker = L.marker([0, 0], {
+    draggable: true,
+    title: "End point",
+    icon: L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    })
+  });
+
+  // Track if markers are on the map
+  let startMarkerAdded = false;
+  let endMarkerAdded = false;
+
+  // Initialize routing control (but don't add to map yet)
+  const routing = L.Routing.control({
+    waypoints: [],
+    routeWhileDragging: true,
+    showAlternatives: true,
+    lineOptions: {
+      styles: [
+        { color: '#2196F3', opacity: 0.7, weight: 6 }
+      ]
+    },
+    altLineOptions: {
+      styles: [
+        { color: '#90CAF9', opacity: 0.5, weight: 5 }
+      ]
+    },
+    createMarker: function () { return null; } // Don't create default markers
+  });
+
+  // Function to get user's current location and set it as the start point
+  function setStartToCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          startMarker.setLatLng([latitude, longitude]);
+          if (!startMarkerAdded) {
+            startMarker.addTo(map);
+            startMarkerAdded = true;
           }
-          
-          // If both points are set, update the route
-          if (startMarkerAdded && endMarkerAdded) {
-            updateRoute();
-            
-            // Expand info panel when route is calculated
-            document.getElementById('route-info').classList.remove('collapsed');
+          startMarker.bindPopup("Your Current Location").openPopup();
+          map.setView([latitude, longitude], 13);
+        },
+        (error) => {
+          console.error('Error getting location:', error.message);
+          alert('Unable to fetch your location. Please allow location access or try again.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  }
+
+  // Function to search for a location
+  function searchLocation(locationName, isStartPoint) {
+    geocoder.geocode(locationName, function (results) {
+      if (results.length > 0) {
+        const result = results[0];
+        const latlng = result.center;
+
+        if (isStartPoint) {
+          // Handle start point
+          startMarker.setLatLng(latlng);
+          if (!startMarkerAdded) {
+            startMarker.addTo(map);
+            startMarkerAdded = true;
+          }
+          startMarker.bindPopup(result.name || "Start point").openPopup();
+
+          // Update start point in document
+          document.getElementById('start-search-box').value = result.name;
+
+          // Zoom to marker if end point isn't set
+          if (!endMarkerAdded) {
+            map.setView(latlng, 13);
           }
         } else {
-          alert("Location not found. Please try a different search term.");
+          // Handle end point
+          endMarker.setLatLng(latlng);
+          if (!endMarkerAdded) {
+            endMarker.addTo(map);
+            endMarkerAdded = true;
+          }
+          endMarker.bindPopup(result.name || "End point").openPopup();
+
+          // Update end point in document
+          document.getElementById('end-search-box').value = result.name;
+
+          // Zoom to marker if start point isn't set
+          if (!startMarkerAdded) {
+            map.setView(latlng, 13);
+          }
         }
-      });
-    }
-    
-    // Function to update the route
-    function updateRoute() {
-      // Remove old route if it exists
-      if (map.hasLayer(routing)) {
-        map.removeControl(routing);
+
+        // If both points are set, update the route
+        if (startMarkerAdded && endMarkerAdded) {
+          updateRoute();
+
+          // Expand info panel when route is calculated
+          document.getElementById('route-info').classList.remove('collapsed');
+        }
+      } else {
+        alert("Location not found. Please try a different search term.");
       }
-      
-      // Create new routing with current markers
-      routing.setWaypoints([
-        startMarker.getLatLng(),
-        endMarker.getLatLng()
-      ]);
-      
-      routing.addTo(map);
-      
-      // Fit map to show both markers
-      const bounds = L.latLngBounds(startMarker.getLatLng(), endMarker.getLatLng());
-      map.fitBounds(bounds, { padding: [50, 50] });
+    });
+  }
+
+  // Function to update the route
+  function updateRoute() {
+    // Remove old route if it exists
+    if (map.hasLayer(routing)) {
+      map.removeControl(routing);
     }
-    
-    // Set up event listeners for buttons
-    document.getElementById('set-start-button').addEventListener('click', function() {
-      const locationName = document.getElementById('start-search-box').value;
+
+    // Create new routing with current markers
+    routing.setWaypoints([
+      startMarker.getLatLng(),
+      endMarker.getLatLng()
+    ]);
+
+    routing.addTo(map);
+
+    // Fit map to show both markers
+    const bounds = L.latLngBounds(startMarker.getLatLng(), endMarker.getLatLng());
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }
+
+  // Set up event listeners for buttons
+  document.getElementById('set-start-button').addEventListener('click', function () {
+    const locationName = document.getElementById('start-search-box').value;
+    if (locationName) {
+      searchLocation(locationName, true);
+    }
+  });
+
+  document.getElementById('set-end-button').addEventListener('click', function () {
+    const locationName = document.getElementById('end-search-box').value;
+    if (locationName) {
+      searchLocation(locationName, false);
+    }
+  });
+
+  // Allow Enter key to trigger search
+  document.getElementById('start-search-box').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      const locationName = this.value;
       if (locationName) {
         searchLocation(locationName, true);
       }
-    });
-    
-    document.getElementById('set-end-button').addEventListener('click', function() {
-      const locationName = document.getElementById('end-search-box').value;
+    }
+  });
+
+  document.getElementById('end-search-box').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      const locationName = this.value;
       if (locationName) {
         searchLocation(locationName, false);
       }
-    });
-    
-    // Allow Enter key to trigger search
-    document.getElementById('start-search-box').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        const locationName = this.value;
-        if (locationName) {
-          searchLocation(locationName, true);
-        }
-      }
-    });
-    
-    document.getElementById('end-search-box').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        const locationName = this.value;
-        if (locationName) {
-          searchLocation(locationName, false);
-        }
-      }
-    });
-    
-    // Update route when markers are dragged
-    startMarker.on('dragend', function() {
-      if (startMarkerAdded && endMarkerAdded) {
-        updateRoute();
-      }
-    });
-    
-    endMarker.on('dragend', function() {
-      if (startMarkerAdded && endMarkerAdded) {
-        updateRoute();
-      }
-    });
-    
-    // Handle route calculation results
-    routing.on('routesfound', function(e) {
-      const routes = e.routes;
-      const summary = routes[0].summary;
-      
-      // Format distance
-      let distance = summary.totalDistance;
-      let distanceText = '';
-      
-      if (distance > 1000) {
-        distanceText = (distance / 1000).toFixed(1) + ' km';
-      } else {
-        distanceText = distance.toFixed(0) + ' m';
-      }
-      
-      // Format time
-      let time = summary.totalTime;
-      let timeText = '';
-      
-      if (time > 3600) {
-        const hours = Math.floor(time / 3600);
-        const minutes = Math.floor((time % 3600) / 60);
-        timeText = hours + ' hr ' + minutes + ' min';
-      } else {
-        const minutes = Math.ceil(time / 60);
-        timeText = minutes + ' min';
-      }
-      
-      // Update info panel with mobile-friendly formatting
-      document.getElementById('route-details').innerHTML = `
-        <div class="route-detail">
-          <div class="detail-icon">🟢</div>
-          <div class="detail-text">${document.getElementById('start-search-box').value}</div>
-        </div>
-        <div class="route-detail">
-          <div class="detail-icon">🔴</div>
-          <div class="detail-text">${document.getElementById('end-search-box').value}</div>
-        </div>
-        
-        <div class="route-main-info">
-          <div>
-            <div>Distance</div>
-            <div><strong>${distanceText}</strong></div>
-          </div>
-          <div>
-            <div>Time</div>
-            <div><strong>${timeText}</strong></div>
-          </div>
-        </div>
-      `;
-      
-      // Make data available to parent frame
-      const routeData = {
-        startLocation: document.getElementById('start-search-box').value,
-        endLocation: document.getElementById('end-search-box').value,
-        distance: distanceText,
-        duration: timeText,
-        startCoords: startMarker.getLatLng(),
-        endCoords: endMarker.getLatLng()
-      };
-      
-      window.parent.postMessage(routeData, '*');
-    });
-  </script>
+    }
+  });
+
+  // Update route when markers are dragged
+  startMarker.on('dragend', function () {
+    if (startMarkerAdded && endMarkerAdded) {
+      updateRoute();
+    }
+  });
+
+  endMarker.on('dragend', function () {
+    if (startMarkerAdded && endMarkerAdded) {
+      updateRoute();
+    }
+  });
+
+  // Get user's current location on page load
+  setStartToCurrentLocation();
+</script>
 </body>
 </html>

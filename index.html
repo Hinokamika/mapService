@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Leaflet Map Bridge for Axure</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 500px;
+      width: 100%;
+    }
+    .info-panel {
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="route-info" class="info-panel">Loading route information...</div>
+  
+  <!-- Leaflet JavaScript -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  
+  <!-- Leaflet Routing Machine for directions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
+  
+  <script>
+    // Get parameters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const startLat = parseFloat(urlParams.get('startLat') || '51.505');
+    const startLng = parseFloat(urlParams.get('startLng') || '-0.09');
+    const endLat = parseFloat(urlParams.get('endLat') || '51.51');
+    const endLng = parseFloat(urlParams.get('endLng') || '-0.1');
+    
+    // Initialize map
+    const map = L.map('map').setView([startLat, startLng], 13);
+    
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // Create start marker (green)
+    const startMarker = L.marker([startLat, startLng], {
+      draggable: true,
+      title: "Start point",
+      icon: L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    }).addTo(map);
+    
+    // Create end marker (red)
+    const endMarker = L.marker([endLat, endLng], {
+      draggable: true,
+      title: "End point",
+      icon: L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+    }).addTo(map);
+    
+    // Add popups to markers
+    startMarker.bindPopup("Start point").openPopup();
+    endMarker.bindPopup("End point");
+    
+    // Initialize routing
+    const routing = L.Routing.control({
+      waypoints: [
+        L.latLng(startLat, startLng),
+        L.latLng(endLat, endLng)
+      ],
+      routeWhileDragging: true,
+      showAlternatives: true,
+      altLineOptions: {
+        styles: [
+          {color: 'black', opacity: 0.15, weight: 9},
+          {color: 'white', opacity: 0.8, weight: 6},
+          {color: 'blue', opacity: 0.5, weight: 2}
+        ]
+      }
+    }).addTo(map);
+    
+    // Update route info when route is calculated
+    routing.on('routesfound', function(e) {
+      const routes = e.routes;
+      const summary = routes[0].summary;
+      
+      // Format distance (convert to km if > 1000m)
+      let distance = summary.totalDistance;
+      let distanceText = '';
+      
+      if (distance > 1000) {
+        distanceText = (distance / 1000).toFixed(1) + ' km';
+      } else {
+        distanceText = distance.toFixed(0) + ' m';
+      }
+      
+      // Format time (convert to minutes and hours)
+      let time = summary.totalTime;
+      let timeText = '';
+      
+      if (time > 3600) {
+        const hours = Math.floor(time / 3600);
+        const minutes = Math.floor((time % 3600) / 60);
+        timeText = hours + ' hr ' + minutes + ' min';
+      } else {
+        const minutes = Math.ceil(time / 60);
+        timeText = minutes + ' min';
+      }
+      
+      // Update info panel
+      document.getElementById('route-info').innerHTML = `
+        <h3>Route Information</h3>
+        <p><strong>Distance:</strong> ${distanceText}</p>
+        <p><strong>Estimated Time:</strong> ${timeText}</p>
+        <p><strong>Start:</strong> ${startMarker.getLatLng().lat.toFixed(5)}, ${startMarker.getLatLng().lng.toFixed(5)}</p>
+        <p><strong>End:</strong> ${endMarker.getLatLng().lat.toFixed(5)}, ${endMarker.getLatLng().lng.toFixed(5)}</p>
+      `;
+      
+      // Make data available to parent frame
+      const routeData = {
+        distance: distanceText,
+        duration: timeText,
+        startCoords: startMarker.getLatLng(),
+        endCoords: endMarker.getLatLng()
+      };
+      
+      window.parent.postMessage(routeData, '*');
+    });
+    
+    // Update routing when markers are dragged
+    startMarker.on('dragend', function(e) {
+      routing.spliceWaypoints(0, 1, e.target.getLatLng());
+    });
+    
+    endMarker.on('dragend', function(e) {
+      routing.spliceWaypoints(1, 1, e.target.getLatLng());
+    });
+  </script>
+</body>
+</html>

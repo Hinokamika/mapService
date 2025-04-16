@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mobile Map Navigation</title>
+  <title>Map Navigation with Suggestions</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-  
-  <!-- Geocoder CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.css" />
   
   <style>
     body {
@@ -27,6 +24,8 @@
       padding: 10px;
       background: #f8f8f8;
       border-bottom: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
     }
     .search-container input,
     .search-container button {
@@ -35,40 +34,42 @@
     }
     .search-container input {
       width: calc(100% - 90px);
+      position: relative;
     }
-    .search-container button {
-      width: 80px;
-      background: #007bff;
-      color: white;
-      border: none;
+    .autocomplete-suggestions {
+      position: absolute;
+      background: white;
+      border: 1px solid #ddd;
+      z-index: 1000;
+      max-height: 150px;
+      overflow-y: auto;
+      width: 100%;
+    }
+    .autocomplete-suggestion {
+      padding: 8px;
       cursor: pointer;
     }
-    .search-container button:hover {
-      background: #0056b3;
+    .autocomplete-suggestion:hover {
+      background: #f0f0f0;
     }
   </style>
 </head>
 <body>
   <div class="search-container">
-    <div>
-      <input type="text" id="start-search-box" placeholder="Enter starting point" />
-      <button id="set-start-button">Set Start</button>
+    <div style="position: relative;">
+      <input type="text" id="start-search-box" placeholder="Enter starting point" autocomplete="off" />
+      <div id="start-suggestions" class="autocomplete-suggestions"></div>
     </div>
-    <div>
-      <input type="text" id="end-search-box" placeholder="Enter destination" />
-      <button id="set-end-button">Set End</button>
+    <div style="position: relative;">
+      <input type="text" id="end-search-box" placeholder="Enter destination" autocomplete="off" />
+      <div id="end-suggestions" class="autocomplete-suggestions"></div>
     </div>
+    <button id="calculate-route">Get Route</button>
   </div>
   <div id="map"></div>
   
   <!-- Leaflet JavaScript -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-  
-  <!-- Leaflet Routing Machine -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
-  
-  <!-- Geocoder Plugin -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.min.js"></script>
   
   <script>
     // Initialize the map
@@ -79,129 +80,87 @@
       maxZoom: 19
     }).addTo(map);
 
-    // Initialize geocoder
-    const geocoder = L.Control.Geocoder.nominatim();
-
-    // Markers for start and end points
+    // Initialize variables for start and end markers
     let startMarker = null;
     let endMarker = null;
 
-    // Routing control
-    const routingControl = L.Routing.control({
-      waypoints: [],
-      routeWhileDragging: true,
-      showAlternatives: true,
-      draggableWaypoints: true,
-      createMarker: () => null // Do not create default markers
-    }).addTo(map);
+    // Function to fetch suggestions from OpenCage Geocoder API
+    async function fetchSuggestions(query, suggestionsContainer) {
+      const apiKey = 'YOUR_OPENCAGE_API_KEY'; // Replace with your OpenCage API key
+      const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${apiKey}&limit=5`;
 
-    // Function to set the user's current location as the starting point
-    function setUserLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
 
-            // Set start marker to user's location
-            if (!startMarker) {
-              startMarker = L.marker([latitude, longitude], {
-                draggable: true,
-                icon: L.icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
-                  popupAnchor: [1, -34],
-                  shadowSize: [41, 41]
-                })
-              }).addTo(map);
-            } else {
-              startMarker.setLatLng([latitude, longitude]);
-            }
-
-            map.setView([latitude, longitude], 13);
-            updateRoute();
-          },
-          (error) => {
-            console.error('Geolocation error:', error.message);
-            alert('Could not fetch your location. Please enter it manually.');
-          }
-        );
-      } else {
-        alert('Geolocation is not supported by your browser.');
+        if (data.results) {
+          suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+          data.results.forEach((result) => {
+            const suggestion = document.createElement('div');
+            suggestion.classList.add('autocomplete-suggestion');
+            suggestion.textContent = result.formatted;
+            suggestion.addEventListener('click', () => {
+              const latlng = result.geometry;
+              handleSuggestionClick(latlng, suggestionsContainer);
+            });
+            suggestionsContainer.appendChild(suggestion);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
       }
     }
 
-    // Function to search for a location and update the marker
-    function searchLocation(query, isStartPoint) {
-      geocoder.geocode(query, (results) => {
-        if (results.length > 0) {
-          const { center } = results[0];
-
-          if (isStartPoint) {
-            if (!startMarker) {
-              startMarker = L.marker(center, {
-                draggable: true,
-                icon: L.icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
-                  popupAnchor: [1, -34],
-                  shadowSize: [41, 41]
-                })
-              }).addTo(map);
-            } else {
-              startMarker.setLatLng(center);
-            }
-            map.setView(center, 13);
-          } else {
-            if (!endMarker) {
-              endMarker = L.marker(center, {
-                draggable: true,
-                icon: L.icon({
-                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-                  iconSize: [25, 41],
-                  iconAnchor: [12, 41],
-                  popupAnchor: [1, -34],
-                  shadowSize: [41, 41]
-                })
-              }).addTo(map);
-            } else {
-              endMarker.setLatLng(center);
-            }
-            map.setView(center, 13);
-          }
-
-          updateRoute();
+    // Handle suggestion click
+    function handleSuggestionClick(latlng, suggestionsContainer) {
+      if (suggestionsContainer.id === 'start-suggestions') {
+        if (!startMarker) {
+          startMarker = L.marker([latlng.lat, latlng.lng], { draggable: true }).addTo(map);
         } else {
-          alert('Location not found. Please try again.');
+          startMarker.setLatLng([latlng.lat, latlng.lng]);
         }
-      });
+        map.setView([latlng.lat, latlng.lng], 13);
+      } else if (suggestionsContainer.id === 'end-suggestions') {
+        if (!endMarker) {
+          endMarker = L.marker([latlng.lat, latlng.lng], { draggable: true }).addTo(map);
+        } else {
+          endMarker.setLatLng([latlng.lat, latlng.lng]);
+        }
+        map.setView([latlng.lat, latlng.lng], 13);
+      }
+      suggestionsContainer.innerHTML = ''; // Clear suggestions after selection
     }
 
-    // Update the route based on the markers
-    function updateRoute() {
-      const waypoints = [];
-      if (startMarker) waypoints.push(startMarker.getLatLng());
-      if (endMarker) waypoints.push(endMarker.getLatLng());
-      routingControl.setWaypoints(waypoints);
-    }
-
-    // Event listeners for search buttons
-    document.getElementById('set-start-button').addEventListener('click', () => {
-      const query = document.getElementById('start-search-box').value;
-      if (query) searchLocation(query, true);
+    // Add event listeners to the input fields
+    document.getElementById('start-search-box').addEventListener('input', (e) => {
+      const query = e.target.value;
+      const suggestionsContainer = document.getElementById('start-suggestions');
+      if (query.length > 2) {
+        fetchSuggestions(query, suggestionsContainer);
+      } else {
+        suggestionsContainer.innerHTML = ''; // Clear suggestions if query is too short
+      }
     });
 
-    document.getElementById('set-end-button').addEventListener('click', () => {
-      const query = document.getElementById('end-search-box').value;
-      if (query) searchLocation(query, false);
+    document.getElementById('end-search-box').addEventListener('input', (e) => {
+      const query = e.target.value;
+      const suggestionsContainer = document.getElementById('end-suggestions');
+      if (query.length > 2) {
+        fetchSuggestions(query, suggestionsContainer);
+      } else {
+        suggestionsContainer.innerHTML = ''; // Clear suggestions if query is too short
+      }
     });
 
-    // Automatically set user location on load
-    setUserLocation();
+    // Handle route calculation
+    document.getElementById('calculate-route').addEventListener('click', () => {
+      if (startMarker && endMarker) {
+        // Logic to calculate and display the route
+        alert('Route calculation is not implemented in this example.');
+      } else {
+        alert('Please set both start and end points.');
+      }
+    });
   </script>
 </body>
 </html>

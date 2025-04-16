@@ -12,199 +12,54 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.css" />
   
   <style>
-    /* Mobile-first styles */
-    * {
-      box-sizing: border-box;
+    body {
+      font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background-color: #f0f0f0;
-      color: #333;
       height: 100vh;
-      width: 100vw;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
-    
-    .app-header {
-      background-color: #2196F3;
-      color: white;
-      text-align: center;
-      padding: 10px;
-      font-size: 18px;
-      font-weight: 500;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 1000;
-    }
-    
-    .search-container {
-      padding: 8px;
-      background-color: white;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    
-    .search-row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    
-    .search-row:last-child {
-      margin-bottom: 0;
-    }
-    
-    .search-box {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 16px;
-      background-color: #f8f9fa;
-    }
-    
-    #start-search-box {
-      border-left: 4px solid #4CAF50;
-    }
-    
-    #end-search-box {
-      border-left: 4px solid #F44336;
-    }
-    
-    .search-button {
-      padding: 10px 12px;
-      margin-left: 8px;
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    
     #map {
       flex: 1;
-      width: 100%;
-      z-index: 1;
     }
-    
-    .route-info-panel {
-      background: white;
-      padding: 12px;
-      border-top: 1px solid #e0e0e0;
-      box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-      font-size: 14px;
-      transition: transform 0.3s ease;
-      max-height: 35vh;
-      overflow-y: auto;
+    .search-container {
+      padding: 10px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #ddd;
     }
-    
-    .route-info-panel.collapsed {
-      transform: translateY(calc(100% - 40px));
+    .search-container input,
+    .search-container button {
+      padding: 8px;
+      margin: 5px 0;
     }
-    
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+    .search-container input {
+      width: calc(100% - 90px);
     }
-    
-    .toggle-panel {
-      width: 40px;
-      height: 5px;
-      background-color: #e0e0e0;
-      border-radius: 10px;
-      margin: 0 auto 8px;
+    .search-container button {
+      width: 80px;
+      background: #007bff;
+      color: white;
+      border: none;
       cursor: pointer;
     }
-    
-    .route-detail {
-      display: flex;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    
-    .detail-icon {
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-    }
-    
-    .detail-text {
-      flex: 1;
-    }
-    
-    .route-main-info {
-      display: flex;
-      justify-content: space-between;
-      background-color: #f8f9fa;
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 10px;
-      font-weight: 500;
-    }
-    
-    /* Make Leaflet controls more touch-friendly */
-    .leaflet-touch .leaflet-control-layers,
-    .leaflet-touch .leaflet-bar {
-      border: none;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-    }
-    
-    .leaflet-touch .leaflet-bar a {
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
-    }
-    
-    /* Optimize marker popup for mobile */
-    .leaflet-popup-content {
-      margin: 10px;
-      font-size: 14px;
-    }
-    
-    /* Improve mobile routing display */
-    .leaflet-routing-container {
-      display: none; /* Hide default routing instructions */
+    .search-container button:hover {
+      background: #0056b3;
     }
   </style>
 </head>
 <body>
-  <div class="app-header">
-    Navigation
-  </div>
-  
   <div class="search-container">
-    <div class="search-row">
-      <input type="text" id="start-search-box" class="search-box" placeholder="Starting point">
-      <button id="set-start-button" class="search-button">Set</button>
+    <div>
+      <input type="text" id="start-search-box" placeholder="Enter starting point" />
+      <button id="set-start-button">Set Start</button>
     </div>
-    <div class="search-row">
-      <input type="text" id="end-search-box" class="search-box" placeholder="Destination">
-      <button id="set-end-button" class="search-button">Set</button>
+    <div>
+      <input type="text" id="end-search-box" placeholder="Enter destination" />
+      <button id="set-end-button">Set End</button>
     </div>
   </div>
-  
   <div id="map"></div>
-  
-  <div id="route-info" class="route-info-panel collapsed">
-    <div class="toggle-panel" id="toggle-panel"></div>
-    <div class="panel-header">
-      <h3>Route Details</h3>
-    </div>
-    <div id="route-details">
-      Enter locations to see route details
-    </div>
-  </div>
   
   <!-- Leaflet JavaScript -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -216,228 +71,137 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-control-geocoder/2.4.0/Control.Geocoder.min.js"></script>
   
   <script>
-  // Initialize map with default view
-  const map = L.map('map', {
-    zoomControl: false, // Move zoom control for better mobile experience
-    attributionControl: false // Hide attribution for cleaner mobile view
-  }).setView([20, 0], 2);
+    // Initialize the map
+    const map = L.map('map').setView([20, 0], 2);
 
-  // Move zoom control to bottom right for better thumb access
-  L.control.zoom({
-    position: 'bottomright'
-  }).addTo(map);
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
 
-  // Add minimal attribution
-  L.control.attribution({
-    position: 'bottomleft',
-    prefix: ''
-  }).addAttribution('© OpenStreetMap').addTo(map);
+    // Initialize geocoder
+    const geocoder = L.Control.Geocoder.nominatim();
 
-  // Add OpenStreetMap tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19
-  }).addTo(map);
+    // Markers for start and end points
+    let startMarker = null;
+    let endMarker = null;
 
-  // Initialize geocoder
-  const geocoder = L.Control.Geocoder.nominatim();
+    // Routing control
+    const routingControl = L.Routing.control({
+      waypoints: [],
+      routeWhileDragging: true,
+      showAlternatives: true,
+      draggableWaypoints: true,
+      createMarker: () => null // Do not create default markers
+    }).addTo(map);
 
-  // Create start marker (green)
-  const startMarker = L.marker([0, 0], {
-    draggable: true,
-    title: "Start point",
-    icon: L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    })
-  });
+    // Function to set the user's current location as the starting point
+    function setUserLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
 
-  // Create end marker (red)
-  const endMarker = L.marker([0, 0], {
-    draggable: true,
-    title: "End point",
-    icon: L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    })
-  });
+            // Set start marker to user's location
+            if (!startMarker) {
+              startMarker = L.marker([latitude, longitude], {
+                draggable: true,
+                icon: L.icon({
+                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41]
+                })
+              }).addTo(map);
+            } else {
+              startMarker.setLatLng([latitude, longitude]);
+            }
 
-  // Track if markers are on the map
-  let startMarkerAdded = false;
-  let endMarkerAdded = false;
-
-  // Initialize routing control (but don't add to map yet)
-  const routing = L.Routing.control({
-    waypoints: [],
-    routeWhileDragging: true,
-    showAlternatives: true,
-    lineOptions: {
-      styles: [
-        { color: '#2196F3', opacity: 0.7, weight: 6 }
-      ]
-    },
-    altLineOptions: {
-      styles: [
-        { color: '#90CAF9', opacity: 0.5, weight: 5 }
-      ]
-    },
-    createMarker: function () { return null; } // Don't create default markers
-  });
-
-  // Function to get user's current location and set it as the start point
-  function setStartToCurrentLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          startMarker.setLatLng([latitude, longitude]);
-          if (!startMarkerAdded) {
-            startMarker.addTo(map);
-            startMarkerAdded = true;
+            map.setView([latitude, longitude], 13);
+            updateRoute();
+          },
+          (error) => {
+            console.error('Geolocation error:', error.message);
+            alert('Could not fetch your location. Please enter it manually.');
           }
-          startMarker.bindPopup("Your Current Location").openPopup();
-          map.setView([latitude, longitude], 13);
-        },
-        (error) => {
-          console.error('Error getting location:', error.message);
-          alert('Unable to fetch your location. Please allow location access or try again.');
-        }
-      );
-    } else {
-      alert('Geolocation is not supported by your browser.');
-    }
-  }
-
-  // Function to search for a location
-  function searchLocation(locationName, isStartPoint) {
-    geocoder.geocode(locationName, function (results) {
-      if (results.length > 0) {
-        const result = results[0];
-        const latlng = result.center;
-
-        if (isStartPoint) {
-          // Handle start point
-          startMarker.setLatLng(latlng);
-          if (!startMarkerAdded) {
-            startMarker.addTo(map);
-            startMarkerAdded = true;
-          }
-          startMarker.bindPopup(result.name || "Start point").openPopup();
-
-          // Update start point in document
-          document.getElementById('start-search-box').value = result.name;
-
-          // Zoom to marker if end point isn't set
-          if (!endMarkerAdded) {
-            map.setView(latlng, 13);
-          }
-        } else {
-          // Handle end point
-          endMarker.setLatLng(latlng);
-          if (!endMarkerAdded) {
-            endMarker.addTo(map);
-            endMarkerAdded = true;
-          }
-          endMarker.bindPopup(result.name || "End point").openPopup();
-
-          // Update end point in document
-          document.getElementById('end-search-box').value = result.name;
-
-          // Zoom to marker if start point isn't set
-          if (!startMarkerAdded) {
-            map.setView(latlng, 13);
-          }
-        }
-
-        // If both points are set, update the route
-        if (startMarkerAdded && endMarkerAdded) {
-          updateRoute();
-
-          // Expand info panel when route is calculated
-          document.getElementById('route-info').classList.remove('collapsed');
-        }
+        );
       } else {
-        alert("Location not found. Please try a different search term.");
+        alert('Geolocation is not supported by your browser.');
       }
+    }
+
+    // Function to search for a location and update the marker
+    function searchLocation(query, isStartPoint) {
+      geocoder.geocode(query, (results) => {
+        if (results.length > 0) {
+          const { center } = results[0];
+
+          if (isStartPoint) {
+            if (!startMarker) {
+              startMarker = L.marker(center, {
+                draggable: true,
+                icon: L.icon({
+                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41]
+                })
+              }).addTo(map);
+            } else {
+              startMarker.setLatLng(center);
+            }
+            map.setView(center, 13);
+          } else {
+            if (!endMarker) {
+              endMarker = L.marker(center, {
+                draggable: true,
+                icon: L.icon({
+                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                  iconSize: [25, 41],
+                  iconAnchor: [12, 41],
+                  popupAnchor: [1, -34],
+                  shadowSize: [41, 41]
+                })
+              }).addTo(map);
+            } else {
+              endMarker.setLatLng(center);
+            }
+            map.setView(center, 13);
+          }
+
+          updateRoute();
+        } else {
+          alert('Location not found. Please try again.');
+        }
+      });
+    }
+
+    // Update the route based on the markers
+    function updateRoute() {
+      const waypoints = [];
+      if (startMarker) waypoints.push(startMarker.getLatLng());
+      if (endMarker) waypoints.push(endMarker.getLatLng());
+      routingControl.setWaypoints(waypoints);
+    }
+
+    // Event listeners for search buttons
+    document.getElementById('set-start-button').addEventListener('click', () => {
+      const query = document.getElementById('start-search-box').value;
+      if (query) searchLocation(query, true);
     });
-  }
 
-  // Function to update the route
-  function updateRoute() {
-    // Remove old route if it exists
-    if (map.hasLayer(routing)) {
-      map.removeControl(routing);
-    }
+    document.getElementById('set-end-button').addEventListener('click', () => {
+      const query = document.getElementById('end-search-box').value;
+      if (query) searchLocation(query, false);
+    });
 
-    // Create new routing with current markers
-    routing.setWaypoints([
-      startMarker.getLatLng(),
-      endMarker.getLatLng()
-    ]);
-
-    routing.addTo(map);
-
-    // Fit map to show both markers
-    const bounds = L.latLngBounds(startMarker.getLatLng(), endMarker.getLatLng());
-    map.fitBounds(bounds, { padding: [50, 50] });
-  }
-
-  // Set up event listeners for buttons
-  document.getElementById('set-start-button').addEventListener('click', function () {
-    const locationName = document.getElementById('start-search-box').value;
-    if (locationName) {
-      searchLocation(locationName, true);
-    }
-  });
-
-  document.getElementById('set-end-button').addEventListener('click', function () {
-    const locationName = document.getElementById('end-search-box').value;
-    if (locationName) {
-      searchLocation(locationName, false);
-    }
-  });
-
-  // Allow Enter key to trigger search
-  document.getElementById('start-search-box').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      const locationName = this.value;
-      if (locationName) {
-        searchLocation(locationName, true);
-      }
-    }
-  });
-
-  document.getElementById('end-search-box').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      const locationName = this.value;
-      if (locationName) {
-        searchLocation(locationName, false);
-      }
-    }
-  });
-
-  // Update route when markers are dragged
-  startMarker.on('dragend', function () {
-    if (startMarkerAdded && endMarkerAdded) {
-      updateRoute();
-    }
-  });
-
-  endMarker.on('dragend', function () {
-    if (startMarkerAdded && endMarkerAdded) {
-      updateRoute();
-    }
-  });
-
-  // Get user's current location on page load
-  setStartToCurrentLocation();
-</script>
+    // Automatically set user location on load
+    setUserLocation();
+  </script>
 </body>
 </html>
